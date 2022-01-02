@@ -1,7 +1,5 @@
 #![no_std]
 
-mod client;
-mod server;
 mod header;
 mod request;
 mod response;
