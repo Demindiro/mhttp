@@ -9,6 +9,7 @@ use core::fmt;
 pub use request::{Method, RequestBuilder, RequestParser, InvalidRequest};
 pub use response::{Status, ResponseBuilder, ResponseParser, InvalidResponse};
 
+/// An error that is returned if the buffer is too small.
 pub struct Exhausted;
 
 impl fmt::Debug for Exhausted {

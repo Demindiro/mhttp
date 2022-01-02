@@ -1,11 +1,15 @@
 use super::Exhausted;
 
+/// Headers builder used by [`RequestBuilder`] and [`ResponseBuilder`].
 pub(crate) struct HeadersBuilder<'a> {
+	/// Buffer to write headers to.
 	pub(crate) buffer: &'a mut [u8],
+	/// The offset in the buffer to write additional headers to.
 	pub(crate) index: usize,
 }
 
 impl<'a> HeadersBuilder<'a> {
+	/// Add a single header.
 	pub fn add_header(mut self, header: &str, value: &str) -> Result<Self, Exhausted> {
 		let size = header.len() + 2 + value.len() + 2;
 		if self.buffer.len() - self.index < size + 2 {
@@ -29,6 +33,7 @@ impl<'a> HeadersBuilder<'a> {
 		Ok(self)
 	}
 
+	/// Finish constructing the headers.
 	#[inline]
 	pub fn finish(self) -> (&'a [u8], &'a mut [u8]) {
 		self.buffer[self.index..][..2].copy_from_slice(b"\r\n");
@@ -37,12 +42,14 @@ impl<'a> HeadersBuilder<'a> {
 	}
 }
 
+/// Headers parser used by [`RequestBuilder`] and [`ResponseBuilder`].
 #[derive(Debug)]
 pub(crate) struct HeadersParser<'a, 'b> {
 	headers: &'b [&'a str],
 }
 
 impl<'a, 'b> HeadersParser<'a, 'b> {
+	/// Parse a list of headers.
 	pub fn parse(mut data: &'a [u8], storage: &'b mut [&'a str]) -> Result<(Self, &'a [u8]), InvalidHeader> {
 		'l: for index in 0..storage.len() {
 			if data.len() < 2 {
@@ -85,9 +92,12 @@ impl<'a, 'b> HeadersParser<'a, 'b> {
 	}
 }
 
+/// Errors that may occur during parsing.
 pub enum InvalidHeader {
+	/// Data is missing.
 	Truncated,
-	Exhausted,
+	/// A header contains invalid UTF-8.
 	InvalidUTF8,
+	/// A header is missing a value.
 	NoValue,
 }

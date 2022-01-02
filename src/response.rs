@@ -1,5 +1,6 @@
 use super::{Exhausted, header::{HeadersBuilder, HeadersParser, InvalidHeader}};
 
+/// All status codes that responses can return.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Status {
 	// 1xx
@@ -72,9 +73,11 @@ pub enum Status {
 	NetworkAuthenticationRequired,
 }
 
+/// Utility for creating HTTP responses.
 pub struct ResponseBuilder<'a>(HeadersBuilder<'a>);
 
 impl<'a> ResponseBuilder<'a> {
+	/// Create a new HTTP response by writing into the given buffer.
 	pub fn new(buffer: &'a mut [u8], status: Status) -> Result<Self, Exhausted> {
 		let s = match status {
 			// 1xx
@@ -164,17 +167,21 @@ impl<'a> ResponseBuilder<'a> {
 		Ok(Self(HeadersBuilder { buffer, index: size }))
 	}
 
+	/// Append a single header.
 	#[inline]
 	pub fn add_header(self, header: &str, value: &str) -> Result<Self, Exhausted> {
 		self.0.add_header(header, value).map(Self)
 	}
 
+	/// Finish constructing the HTTP response, returning the slice with the headers and
+	/// the remaining buffer slice.
 	#[inline]
 	pub fn finish(self) -> (&'a [u8], &'a mut [u8]) {
 		self.0.finish()
 	}
 }
 
+/// Utility for parsing HTTP responses.
 #[derive(Debug)]
 pub struct ResponseParser<'a, 'b> {
 	pub status: Status,
@@ -182,6 +189,7 @@ pub struct ResponseParser<'a, 'b> {
 }
 
 impl<'a, 'b> ResponseParser<'a, 'b> {
+	/// Parse a HTTP response, returning the status and any additional data if successful.
 	pub fn parse(data: &'a [u8], storage: &'b mut [&'a str]) -> Result<(Self, &'a [u8]), InvalidResponse<'a>> {
 		for (i, w) in data.windows(2).enumerate() {
 			if w == b"\r\n" {
@@ -276,18 +284,19 @@ impl<'a, 'b> ResponseParser<'a, 'b> {
 		Err(InvalidResponse::Truncated)
 	}
 
+	/// Get the value of the header with the given name.
 	#[inline]
 	pub fn header(&self, header: &str) -> Option<&'a str> {
 		self.headers.get(header)
 	}
 }
 
+/// Errors that may occur while parsing a response.
 #[derive(Debug)]
 pub enum InvalidResponse<'a> {
 	InvalidStatus(&'a [u8]),
 	UnsupportedVersion(&'a [u8]),
 	Truncated,
-	Exhausted,
 	InvalidUTF8,
 	NoValue,
 }
@@ -296,7 +305,6 @@ impl From<InvalidHeader> for InvalidResponse<'_> {
 	fn from(h: InvalidHeader) -> Self {
 		match h {
 			InvalidHeader::Truncated => Self::Truncated,
-			InvalidHeader::Exhausted => Self::Exhausted,
 			InvalidHeader::InvalidUTF8 => Self::InvalidUTF8,
 			InvalidHeader::NoValue => Self::NoValue,
 		}

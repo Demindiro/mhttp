@@ -1,5 +1,6 @@
 use super::{Exhausted, header::{HeadersBuilder, HeadersParser, InvalidHeader}};
 
+/// All methods that may be used in requests.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Method {
 	Get,
@@ -13,9 +14,11 @@ pub enum Method {
 	Patch,
 }
 
+/// Utility for creating HTTP requests.
 pub struct RequestBuilder<'a>(HeadersBuilder<'a>);
 
 impl<'a> RequestBuilder<'a> {
+	/// Begin creating a new HTTP request.
 	pub fn new(buffer: &'a mut [u8], path: &str, method: Method) -> Result<Self, Exhausted> {
 		let s = match method {
 			Method::Get => "GET",
@@ -52,17 +55,21 @@ impl<'a> RequestBuilder<'a> {
 		Ok(Self(HeadersBuilder { buffer, index: size }))
 	}
 
+	/// Append a single header.
 	#[inline]
 	pub fn add_header(self, header: &str, value: &str) -> Result<Self, Exhausted> {
 		self.0.add_header(header, value).map(Self)
 	}
 
+	/// Construct the final request, returning the slice with the headers and the remainder
+	/// of the buffer.
 	#[inline]
 	pub fn finish(self) -> (&'a [u8], &'a mut [u8]) {
 		self.0.finish()
 	}
 }
 
+/// Utility for parsing HTTP requests.
 #[derive(Debug)]
 pub struct RequestParser<'a, 'b> {
 	pub method: Method,
@@ -71,6 +78,7 @@ pub struct RequestParser<'a, 'b> {
 }
 
 impl<'a, 'b> RequestParser<'a, 'b> {
+	/// Parse a HTTP request, returning the method, path, headers and any additional data if successful.
 	pub fn parse(data: &'a [u8], storage: &'b mut [&'a str]) -> Result<(Self, &'a [u8]), InvalidRequest<'a>> {
 		for (i, w) in data.windows(2).enumerate() {
 			if w == b"\r\n" {
@@ -113,12 +121,14 @@ impl<'a, 'b> RequestParser<'a, 'b> {
 		Err(InvalidRequest::Truncated)
 	}
 
+	/// Get the value of the header with the given name.
 	#[inline]
 	pub fn header(&self, header: &str) -> Option<&'a str> {
 		self.headers.get(header)
 	}
 }
 
+/// Errors that may occur while parsing a request.
 #[derive(Debug)]
 pub enum InvalidRequest<'a> {
 	InvalidMethod(&'a [u8]),
@@ -126,7 +136,6 @@ pub enum InvalidRequest<'a> {
 	UnsupportedVersion(&'a [u8]),
 	TrailingGarbage(&'a [u8]),
 	Truncated,
-	Exhausted,
 	InvalidUTF8,
 	NoValue,
 }
@@ -135,7 +144,6 @@ impl From<InvalidHeader> for InvalidRequest<'_> {
 	fn from(h: InvalidHeader) -> Self {
 		match h {
 			InvalidHeader::Truncated => Self::Truncated,
-			InvalidHeader::Exhausted => Self::Exhausted,
 			InvalidHeader::InvalidUTF8 => Self::InvalidUTF8,
 			InvalidHeader::NoValue => Self::NoValue,
 		}
