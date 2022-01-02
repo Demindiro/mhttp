@@ -8,8 +8,8 @@ mod response;
 
 use core::fmt;
 
-pub use request::{Method, RequestBuilder};
-pub use response::{Status, ResponseBuilder};
+pub use request::{Method, RequestBuilder, RequestParser, InvalidRequest};
+pub use response::{Status, ResponseBuilder, ResponseParser, InvalidResponse};
 
 pub struct Exhausted;
 
