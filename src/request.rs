@@ -3,6 +3,14 @@ use super::{Exhausted, header::{HeadersBuilder, HeadersParser, InvalidHeader}};
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Method {
 	Get,
+	Head,
+	Post,
+	Put,
+	Delete,
+	Connect,
+	Options,
+	Trace,
+	Patch,
 }
 
 pub struct RequestBuilder<'a>(HeadersBuilder<'a>);
@@ -11,6 +19,14 @@ impl<'a> RequestBuilder<'a> {
 	pub fn new(buffer: &'a mut [u8], path: &str, method: Method) -> Result<Self, Exhausted> {
 		let s = match method {
 			Method::Get => "GET",
+			Method::Head => "HEAD",
+			Method::Post => "POST",
+			Method::Put => "PUT",
+			Method::Delete => "DELETE",
+			Method::Connect => "CONNECT",
+			Method::Options => "OPTIONS",
+			Method::Trace => "TRACE",
+			Method::Patch => "PATCH",
 		};
 		let size = s.len() + 1 + path.len() + 1 + "HTTP/1.1\r\n".len();
 		if buffer.len() < size + 2 {
@@ -73,6 +89,14 @@ impl<'a, 'b> RequestParser<'a, 'b> {
 				}
 				let method = match method {
 					b"GET" => Method::Get,
+					b"HEAD" => Method::Head,
+					b"POST" => Method::Post,
+					b"PUT" => Method::Put,
+					b"DELETE" => Method::Delete,
+					b"CONNECT" => Method::Connect,
+					b"OPTIONS" => Method::Options,
+					b"TRACE" => Method::Trace,
+					b"PATCH" => Method::Patch,
 					m => return Err(InvalidRequest::InvalidMethod(m)),
 				};
 				let path = core::str::from_utf8(path)
